@@ -3,7 +3,7 @@ import glsl from "vite-plugin-glsl";
 
 export default defineConfig(() => {
   return {
-    root: "./",
+    root: "./src",
     publicDir: "../public",
     base: "./",
     plugins: [glsl()],
