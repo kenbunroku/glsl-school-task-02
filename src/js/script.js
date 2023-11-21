@@ -37,30 +37,30 @@ class WebGLApp {
     // variables for voronoi stippling
     this.imageIndex = 0;
     this.imagePaths = [
-      "/assets/takamori_saigo.png",
-      "/assets/toshimichi_ohkubo.png",
-      "/assets/takayoshi_kido.png",
-      "/assets/tatewaki_komatsu.png",
-      "/assets/masujiro_ohmura.png",
-      "/assets/issei_maebara.png",
-      "/assets/saneomi_hirosawa.png",
-      "/assets/shinpei_eto.png",
-      "/assets/yokoi_shonan.png",
-      "/assets/tomomi_iwakura.png",
-      "/assets/ryoma_sakamoto.png",
+      "/glsl-school-task-02/assets/takamori_saigo.png",
+      "/glsl-school-task-02/assets/toshimichi_ohkubo.png",
+      "/glsl-school-task-02/assets/takayoshi_kido.png",
+      "/glsl-school-task-02/assets/tatewaki_komatsu.png",
+      "/glsl-school-task-02/assets/masujiro_ohmura.png",
+      "/glsl-school-task-02/assets/issei_maebara.png",
+      "/glsl-school-task-02/assets/saneomi_hirosawa.png",
+      "/glsl-school-task-02/assets/shinpei_eto.png",
+      "/glsl-school-task-02/assets/yokoi_shonan.png",
+      "/glsl-school-task-02/assets/tomomi_iwakura.png",
+      "/glsl-school-task-02/assets/ryoma_sakamoto.png",
     ];
     this.imageNames = [
-      "/assets/saigo_name.png",
-      "/assets/ohkubo_name.png",
-      "/assets/kido_name.png",
-      "/assets/komatsu_name.png",
-      "/assets/ohmura_name.png",
-      "/assets/maebara_name.png",
-      "/assets/hirosawa_name.png",
-      "/assets/eto_name.png",
-      "/assets/yokoi_name.png",
-      "/assets/iwakura_name.png",
-      "/assets/sakamoto_name.png",
+      "/glsl-school-task-02/assets/saigo_name.png",
+      "/glsl-school-task-02/assets/ohkubo_name.png",
+      "/glsl-school-task-02/assets/kido_name.png",
+      "/glsl-school-task-02/assets/komatsu_name.png",
+      "/glsl-school-task-02/assets/ohmura_name.png",
+      "/glsl-school-task-02/assets/maebara_name.png",
+      "/glsl-school-task-02/assets/hirosawa_name.png",
+      "/glsl-school-task-02/assets/eto_name.png",
+      "/glsl-school-task-02/assets/yokoi_name.png",
+      "/glsl-school-task-02/assets/iwakura_name.png",
+      "/glsl-school-task-02/assets/sakamoto_name.png",
     ];
 
     // variables for source
@@ -92,8 +92,12 @@ class WebGLApp {
    * @return {Promise}
    */
   async load() {
-    const vs = await WebGLUtility.loadFile("/shaders/main.vert");
-    const fs = await WebGLUtility.loadFile("/shaders/main.frag");
+    const vs = await WebGLUtility.loadFile(
+      "/glsl-school-task-02/shaders/main.vert"
+    );
+    const fs = await WebGLUtility.loadFile(
+      "/glsl-school-task-02/shaders/main.frag"
+    );
     this.shaderProgram = new ShaderProgram(this.gl, {
       vertexShaderSource: vs,
       fragmentShaderSource: fs,
@@ -103,8 +107,12 @@ class WebGLApp {
       type: ["uniformMatrix4fv", "uniform1f"],
     });
 
-    const nameVS = await WebGLUtility.loadFile("/shaders/name.vert");
-    const nameFS = await WebGLUtility.loadFile("/shaders/name.frag");
+    const nameVS = await WebGLUtility.loadFile(
+      "/glsl-school-task-02/shaders/name.vert"
+    );
+    const nameFS = await WebGLUtility.loadFile(
+      "/glsl-school-task-02/shaders/name.frag"
+    );
     this.nameShaderProgram = new ShaderProgram(this.gl, {
       vertexShaderSource: nameVS,
       fragmentShaderSource: nameFS,
