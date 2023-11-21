@@ -3,9 +3,9 @@ import glsl from "vite-plugin-glsl";
 
 export default defineConfig(() => {
   return {
-    root: "./src",
+    root: "src",
     publicDir: "../public",
-    base: "./",
+    base: "/glsl-school-task-02/",
     plugins: [glsl()],
     server: {
       host: true,
