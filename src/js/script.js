@@ -109,8 +109,8 @@ class WebGLApp {
     this.nameShaderProgram = new ShaderProgram(this.gl, {
       vertexShaderSource: nameVS,
       fragmentShaderSource: nameFS,
-      attribute: ["nPosition", "texCoord"],
-      stride: [2, 2],
+      attribute: ["vPosition", "vTexCoord", "nameOffset"],
+      stride: [2, 2, 1],
       uniform: ["mvpMatrix", "ratio", "textureUnit0", "textureUnit1"],
       type: ["uniformMatrix4fv", "uniform1f", "uniform1i", "uniform1i"],
     });
@@ -199,13 +199,38 @@ class WebGLApp {
       WebGLUtility.createVbo(this.gl, this.offsets),
     ];
 
-    // 頂点座標
-    this.namePosition = [-0.75, -1.0, 0.75, -1.0, -0.75, -1.5, 0.75, -1.5];
-    // テクスチャ座標
-    this.texCoord = [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+    const minX = -0.75,
+      minY = -1.5;
+    const maxX = 0.75,
+      maxY = -1.0;
+    const width = maxX - minX; // Width of the bounding box
+    const height = maxY - minY; // Height of the bounding box
+
+    this.vertices = [];
+    this.coord = [];
+    this.nameOffset = [];
+    const wSeg = 256;
+    const hSeg = 64;
+    for (let y = 0; y < hSeg; y++) {
+      for (let x = 0; x < wSeg; x++) {
+        let normalizedX = x / wSeg; // Normalized x coordinate (0 to 1)
+        let normalizedY = y / hSeg; // Normalized y coordinate (0 to 1)
+
+        this.coord.push(normalizedX, normalizedY);
+
+        // Map to bounding box
+        let mappedX = minX + normalizedX * width;
+        let mappedY = maxY - normalizedY * height;
+
+        // Add mapped coordinates to vertices
+        this.vertices.push(mappedX, mappedY);
+        this.nameOffset.push(Math.random());
+      }
+    }
     this.nameVbo = [
-      WebGLUtility.createVbo(this.gl, this.namePosition),
-      WebGLUtility.createVbo(this.gl, this.texCoord),
+      WebGLUtility.createVbo(this.gl, this.vertices),
+      WebGLUtility.createVbo(this.gl, this.coord),
+      WebGLUtility.createVbo(this.gl, this.nameOffset),
     ];
 
     this.resize();
@@ -401,7 +426,7 @@ class WebGLApp {
     this.nameShaderProgram.use();
     this.nameShaderProgram.setAttribute(this.nameVbo);
     this.nameShaderProgram.setUniform([mvp, this.timeObject.value, 0, 1]);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.namePosition.length / 2);
+    gl.drawArrays(gl.POINTS, 0, this.vertices.length / 2);
   }
 
   /**
