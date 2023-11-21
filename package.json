@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "d3": "^7.8.5",
+    "gsap": "^3.12.2",
     "vite-plugin-glsl": "^1.1.2"
   }
 }
