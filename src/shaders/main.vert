@@ -22,7 +22,7 @@ void main() {
 
     vec3 pos = mix(pos1, pos2, r);
 
-    vec3 axis = normalize(vec3(0.0, 1.0, -1.0));
+    vec3 axis = normalize(vec3(0.0, 1.0, 1.0));
 
     // Rotation matrix around the axis
     float angle = 4.0 * HALF_PI * r;
