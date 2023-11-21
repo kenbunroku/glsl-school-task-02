@@ -115,6 +115,24 @@ class WebGLApp {
       type: ["uniformMatrix4fv", "uniform1f", "uniform1i", "uniform1i"],
     });
 
+    // loaders
+    const loadingBarElement = document.querySelector(".loading-bar");
+    let loadedItemCount = 0;
+    let progressRatio = 0;
+    let currentProgress = 0;
+
+    const updateLoadingBar = () => {
+      if (currentProgress < progressRatio) {
+        currentProgress += 0.01; // Adjust the increment for smoother animation
+        loadingBarElement.style.transform = `translateX(-50%) scaleX(${currentProgress})`;
+        requestAnimationFrame(updateLoadingBar);
+      } else if (progressRatio === 1.0) {
+        loadingBarElement.classList.add("ended");
+        const sourceElement = document.querySelector(".source-container");
+        sourceElement.classList.add("ended");
+      }
+    };
+
     this.allPositions = [];
 
     for (let path of this.imagePaths) {
@@ -131,6 +149,9 @@ class WebGLApp {
         data.height
       );
       this.allPositions.push(normalizedPositions);
+      loadedItemCount++;
+      progressRatio = loadedItemCount / this.imagePaths.length;
+      requestAnimationFrame(updateLoadingBar);
     }
 
     this.textures = [];
@@ -181,7 +202,7 @@ class WebGLApp {
     const gl = this.gl;
 
     const cameraOption = {
-      distance: 3.0,
+      distance: 3.5,
       min: 1.0,
       max: 10.0,
       move: 2.0,
@@ -209,8 +230,8 @@ class WebGLApp {
     this.vertices = [];
     this.coord = [];
     this.nameOffset = [];
-    const wSeg = 256;
-    const hSeg = 64;
+    const wSeg = 300;
+    const hSeg = 90;
     for (let y = 0; y < hSeg; y++) {
       for (let x = 0; x < wSeg; x++) {
         let normalizedX = x / wSeg; // Normalized x coordinate (0 to 1)
@@ -339,7 +360,7 @@ class WebGLApp {
       value: 1.0,
       duration: 4.0,
       ease: "power2.inOut",
-      delay: 1.0,
+      delay: 2.0,
       repeatDelay: 1.0,
       repeat: -1,
       onRepeat: async () => {
