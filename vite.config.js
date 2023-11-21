@@ -5,7 +5,10 @@ export default defineConfig(() => {
   return {
     root: "./src",
     publicDir: "../public",
-    base: "/glsl-school-task-02/",
+    base: "./",
+    build: {
+      outDir: "./src/dist",
+    },
     plugins: [glsl()],
     server: {
       host: true,
