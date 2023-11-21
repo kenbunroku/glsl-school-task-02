@@ -1,7 +1,6 @@
 import { WebGLUtility, ShaderProgram } from "./lib/webgl";
 import { WebGLMath } from "./lib/math";
 import { WebGLOrbitCamera } from "./lib/camera";
-import { Pane } from "./lib/tweakpane-4.0.0.min.js";
 import * as d3 from "d3";
 import gsap from "gsap";
 
@@ -93,8 +92,8 @@ class WebGLApp {
    * @return {Promise}
    */
   async load() {
-    const vs = await WebGLUtility.loadFile("./shaders/main.vert");
-    const fs = await WebGLUtility.loadFile("./shaders/main.frag");
+    const vs = await WebGLUtility.loadFile("/shaders/main.vert");
+    const fs = await WebGLUtility.loadFile("/shaders/main.frag");
     this.shaderProgram = new ShaderProgram(this.gl, {
       vertexShaderSource: vs,
       fragmentShaderSource: fs,
@@ -104,8 +103,8 @@ class WebGLApp {
       type: ["uniformMatrix4fv", "uniform1f"],
     });
 
-    const nameVS = await WebGLUtility.loadFile("./shaders/name.vert");
-    const nameFS = await WebGLUtility.loadFile("./shaders/name.frag");
+    const nameVS = await WebGLUtility.loadFile("/shaders/name.vert");
+    const nameFS = await WebGLUtility.loadFile("/shaders/name.frag");
     this.nameShaderProgram = new ShaderProgram(this.gl, {
       vertexShaderSource: nameVS,
       fragmentShaderSource: nameFS,
