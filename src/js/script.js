@@ -1,7 +1,9 @@
 import { WebGLUtility, ShaderProgram } from "./lib/webgl";
 import { WebGLMath } from "./lib/math";
 import { WebGLOrbitCamera } from "./lib/camera";
+import { Pane } from "./lib/tweakpane-4.0.0.min.js";
 import * as d3 from "d3";
+import gsap from "gsap";
 
 window.addEventListener(
   "DOMContentLoaded",
@@ -11,6 +13,7 @@ window.addEventListener(
     app.init("webgl-canvas");
     await app.load();
     app.setup();
+    app.repeatAnimation();
     app.render();
   },
   false
@@ -32,11 +35,51 @@ class WebGLApp {
 
     this.centroidIteration = 0;
 
+    this.imageIndex = 0;
+    this.imagePaths = [
+      "/assets/takamori_saigo.png",
+      "/assets/toshimichi_ohkubo.png",
+      "/assets/takayoshi_kido.png",
+      "/assets/tatewaki_komatsu.png",
+      "/assets/masujiro_ohmura.png",
+      "/assets/issei_maebara.png",
+      "/assets/saneomi_hirosawa.png",
+      "/assets/shinpei_eto.png",
+      "/assets/yokoi_shonan.png",
+      "/assets/tomomi_iwakura.png",
+      "/assets/ryoma_sakamoto.png",
+    ];
+
     // 各種パラメータや uniform 変数用
     this.previousTime = 0; // 直前のフレームのタイムスタンプ
-    this.timeScale = 0.0; // 時間の進み方に対するスケール
+    this.timeScale = 1.0; // 時間の進み方に対するスケール
     this.uTime = 0.0; // uniform 変数 time 用
+    this.timeObject = { value: 0 };
     this.uRatio = 0.0; // 変化の割合い
+
+    // const pane = new Pane();
+    // pane
+    //   .addBlade({
+    //     view: "slider",
+    //     label: "time-scale",
+    //     min: 0.0,
+    //     max: 2.0,
+    //     value: this.timeScale,
+    //   })
+    //   .on("change", (v) => {
+    //     this.timeScale = v.value;
+    //   });
+    // pane
+    //   .addBlade({
+    //     view: "slider",
+    //     label: "ratio",
+    //     min: 0.0,
+    //     max: 1.0,
+    //     value: this.uRatio,
+    //   })
+    //   .on("change", (v) => {
+    //     this.uRatio = v.value;
+    //   });
   }
   /**
    * シェーダやテクスチャ用の画像など非同期で読み込みする処理を行う。
@@ -48,57 +91,60 @@ class WebGLApp {
     this.shaderProgram = new ShaderProgram(this.gl, {
       vertexShaderSource: vs,
       fragmentShaderSource: fs,
-      attribute: ["position1", "position2"],
-      stride: [2, 2],
-      uniform: ["mvpMatrix"],
-      type: ["uniformMatrix4fv"],
+      attribute: ["position1", "position2", "offset"],
+      stride: [2, 2, 1],
+      uniform: ["mvpMatrix", "ratio"],
+      type: ["uniformMatrix4fv", "uniform1f"],
     });
 
-    const data = async (path) => {
-      const image = await WebGLUtility.loadImage(path);
-      const tempCanvas = document.createElement("canvas");
-      const width = this.canvas.width;
-      const height = Math.round(width * (image.height / image.width));
-      tempCanvas.width = width;
-      tempCanvas.height = height;
-      const context = tempCanvas.getContext("2d");
-      context.drawImage(
-        image,
-        0,
-        0,
-        image.width,
-        image.height,
-        0,
-        0,
-        width,
-        height
+    this.allPositions = [];
+
+    for (let path of this.imagePaths) {
+      const data = await this.loadData(path);
+      const positions = this.generateVoronoiStippling(
+        data,
+        data.width,
+        data.height,
+        Math.round((data.width * data.height) / 10)
       );
-      const { data: rgba } = context.getImageData(0, 0, width, height);
-      const data = new Float64Array(width * height);
-      for (let i = 0, n = rgba.length / 4; i < n; i++)
-        data[i] = Math.max(0, 1 - rgba[i * 4] / 254);
-      data.width = width;
-      data.height = height;
-
-      return data;
-    };
-
-    const imagePaths = [
-      "/assets/takamori_saigo.png",
-      "/assets/toshimichi_ohkubo.png",
-      "/assets/takayoshi_kido.png",
-      "/assets/tatewaki_komatsu.png",
-      "/assets/masujiro_ohmura.png",
-      "/assets/issei_maebara.png",
-      "/assets/saneomi_hirosawa.png",
-      "/assets/shinpei_eto.png",
-      "/assets/yokoi_shonan.png",
-      "/assets/tomomi_iwakura.png",
-    ];
-    this.imageIndex = 0;
-    this.data = await data(imagePaths[this.imageIndex]);
-    this.data2 = await data(imagePaths[this.imageIndex + 1]);
+      const normalizedPositions = this.normalizePositions(
+        positions,
+        data.width,
+        data.height
+      );
+      this.allPositions.push(normalizedPositions);
+    }
   }
+
+  async loadData(path) {
+    const image = await WebGLUtility.loadImage(path);
+    const tempCanvas = document.createElement("canvas");
+    const width = this.canvas.width;
+    const height = Math.round(width * (image.height / image.width));
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    const context = tempCanvas.getContext("2d");
+    context.drawImage(
+      image,
+      0,
+      0,
+      image.width,
+      image.height,
+      0,
+      0,
+      width,
+      height
+    );
+    const { data: rgba } = context.getImageData(0, 0, width, height);
+    const data = new Float64Array(width * height);
+    for (let i = 0, n = rgba.length / 4; i < n; i++)
+      data[i] = Math.max(0, 1 - rgba[i * 4] / 254);
+    data.width = width;
+    data.height = height;
+
+    return data;
+  }
+
   /**
    * WebGL のレンダリングを開始する前のセットアップを行う。
    */
@@ -113,7 +159,17 @@ class WebGLApp {
     };
     this.camera = new WebGLOrbitCamera(this.canvas, cameraOption);
 
-    this.setupGeometry();
+    this.offsets = [];
+    for (let i = 0; i < this.allPositions[0].length / 2; i++) {
+      this.offsets.push(Math.random());
+    }
+
+    this.vbo = [
+      WebGLUtility.createVbo(this.gl, this.allPositions[0]),
+      WebGLUtility.createVbo(this.gl, this.allPositions[1]),
+      WebGLUtility.createVbo(this.gl, this.offsets),
+    ];
+
     this.resize();
     this.running = true;
     this.previousTime = Date.now();
@@ -134,11 +190,9 @@ class WebGLApp {
     // Initialize the points using rejection sampling
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < 30; j++) {
-        const x = Math.floor(Math.random() * width);
-        const y = Math.floor(Math.random() * height);
+        const x = (positions[i * 2] = Math.floor(Math.random() * width));
+        const y = (positions[i * 2 + 1] = Math.floor(Math.random() * height));
         if (Math.random() < data[y * width + x]) {
-          positions[i * 2] = x;
-          positions[i * 2 + 1] = y;
           break;
         }
       }
@@ -197,38 +251,47 @@ class WebGLApp {
     });
   }
 
-  setupGeometry() {
-    this.n = Math.round((this.data.width * this.data.height) / 10);
-    this.position1 = this.generateVoronoiStippling(
-      this.data,
-      this.data.width,
-      this.data.height,
-      this.n
-    );
-    this.position2 = this.generateVoronoiStippling(
-      this.data2,
-      this.data2.width,
-      this.data2.height,
-      this.n
-    );
+  updateVBOs() {
+    if (this.vbo && this.vbo.length > 0) {
+      this.vbo.forEach((vbo) => this.gl.deleteBuffer(vbo));
+    }
 
-    // Normalize positions
-    this.position1 = this.normalizePositions(
-      this.position1,
-      this.data.width,
-      this.data.height
-    );
-    this.position2 = this.normalizePositions(
-      this.position2,
-      this.data2.width,
-      this.data2.height
-    ); // Use this.data2 dimensions
-
-    // Create VBOs
     this.vbo = [
       WebGLUtility.createVbo(this.gl, this.position1),
       WebGLUtility.createVbo(this.gl, this.position2),
+      WebGLUtility.createVbo(this.gl, this.offsets),
     ];
+  }
+
+  repeatAnimation() {
+    gsap.to(this.timeObject, {
+      value: 1.0,
+      duration: 4.0,
+      ease: "power2.inOut",
+      delay: 1.0,
+      repeatDelay: 1.0,
+      repeat: -1,
+      onRepeat: async () => {
+        this.running = false;
+        this.imageIndex = (this.imageIndex + 1) % this.imagePaths.length;
+        const nextIndex = (this.imageIndex + 1) % this.imagePaths.length;
+
+        this.offsets = [];
+        for (let i = 0; i < this.allPositions[0].length / 2; i++) {
+          this.offsets.push(Math.random());
+        }
+
+        // Switch positions
+        this.position1 = this.allPositions[this.imageIndex];
+        this.position2 = this.allPositions[nextIndex];
+
+        // Update VBOs accordingly
+        this.updateVBOs();
+
+        this.running = true;
+        // await this.updateData();
+      },
+    });
   }
   /**
    * WebGL を利用して描画を行う。
@@ -256,9 +319,7 @@ class WebGLApp {
 
     // - 各種行列を生成する ---------------------------------------------------
     // モデル座標変換行列
-    const rotateAxis = v3.create(0.0, 1.0, 0.0);
-    const rotateAngle = this.uTime * 0.2;
-    const m = m4.rotate(m4.identity(), rotateAngle, rotateAxis);
+    const m = m4.identity();
 
     // ビュー座標変換行列（WebGLOrbitCamera から行列を取得する）
     const v = this.camera.update();
@@ -278,10 +339,10 @@ class WebGLApp {
     // プログラムオブジェクトを指定し、VBO と uniform 変数を設定
     this.shaderProgram.use();
     this.shaderProgram.setAttribute(this.vbo);
-    this.shaderProgram.setUniform([mvp]);
+    this.shaderProgram.setUniform([mvp, this.timeObject.value]);
 
     // 設定済みの情報を使って、頂点を画面にレンダリングする
-    gl.drawArrays(gl.POINTS, 0, this.position1.length / 2);
+    gl.drawArrays(gl.POINTS, 0, this.allPositions[0].length / 2);
   }
   /**
    * リサイズ処理を行う。
