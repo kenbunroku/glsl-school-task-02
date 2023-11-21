@@ -5,7 +5,7 @@ export default defineConfig(() => {
   return {
     root: "src",
     publicDir: "../public",
-    base: "./",
+    base: "/glsl-school-task-02/",
     build: {
       outDir: "../dist",
     },
