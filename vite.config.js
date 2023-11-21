@@ -10,6 +10,11 @@ export default defineConfig(() => {
       outDir: "../dist",
       emptyOutDir: true,
       assetsDir: "assets",
+      rollupOptions: {
+        input: {
+          main: "src/index.html",
+        },
+      },
     },
     plugins: [glsl()],
     server: {
