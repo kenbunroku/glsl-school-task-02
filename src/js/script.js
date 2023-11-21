@@ -35,6 +35,7 @@ class WebGLApp {
 
     this.centroidIteration = 0;
 
+    // variables for voronoi stippling
     this.imageIndex = 0;
     this.imagePaths = [
       "/assets/takamori_saigo.png",
@@ -49,6 +50,36 @@ class WebGLApp {
       "/assets/tomomi_iwakura.png",
       "/assets/ryoma_sakamoto.png",
     ];
+    this.imageNames = [
+      "/assets/saigo_name.png",
+      "/assets/ohkubo_name.png",
+      "/assets/kido_name.png",
+      "/assets/komatsu_name.png",
+      "/assets/ohmura_name.png",
+      "/assets/maebara_name.png",
+      "/assets/hirosawa_name.png",
+      "/assets/eto_name.png",
+      "/assets/yokoi_name.png",
+      "/assets/iwakura_name.png",
+      "/assets/sakamoto_name.png",
+    ];
+
+    // variables for source
+    this.source = document.querySelector(".source");
+    this.sources = [
+      "Japanese book Kinsei Meishi Shashin vol.1 (近世名士写真 其1), Published in 1934 – 1935",
+      "Japanese book Kinsei Meishi Shashin vol.1 (近世名士写真 其1), Published in 1934 – 1935",
+      "Japanese book Kinsei Meishi Shashin vol.1 (近世名士写真 其1), Published in 1934 – 1935",
+      "Private Collection",
+      "Japanese book Kinsei Meishi Shashin vol.2 (近世名士写真 其2), Published in 1934 – 1935",
+      "Collections of the Northern Materials Room, Hokkaido University Library",
+      "Japanese book Kinsei Meishi Shashin vol.2 (近世名士写真 其2), Published in 1934 – 1935",
+      "The Japanese book '幕末・明治・大正 回顧八十年史' (Memories for 80 years, Bakumatsu, Meiji, Taisho)",
+      "Japanese book Ijin Sosho vol.5 (偉人叢書. 第5)",
+      "the United States Library of Congress's Prints and Photographs division",
+      "Japanese book Kinsei Meishi Shashin vol.2 (近世名士写真 其2), Published in 1934 – 1935",
+    ];
+    this.source.innerHTML = this.sources[this.imageIndex];
 
     // 各種パラメータや uniform 変数用
     this.previousTime = 0; // 直前のフレームのタイムスタンプ
@@ -56,30 +87,6 @@ class WebGLApp {
     this.uTime = 0.0; // uniform 変数 time 用
     this.timeObject = { value: 0 };
     this.uRatio = 0.0; // 変化の割合い
-
-    // const pane = new Pane();
-    // pane
-    //   .addBlade({
-    //     view: "slider",
-    //     label: "time-scale",
-    //     min: 0.0,
-    //     max: 2.0,
-    //     value: this.timeScale,
-    //   })
-    //   .on("change", (v) => {
-    //     this.timeScale = v.value;
-    //   });
-    // pane
-    //   .addBlade({
-    //     view: "slider",
-    //     label: "ratio",
-    //     min: 0.0,
-    //     max: 1.0,
-    //     value: this.uRatio,
-    //   })
-    //   .on("change", (v) => {
-    //     this.uRatio = v.value;
-    //   });
   }
   /**
    * シェーダやテクスチャ用の画像など非同期で読み込みする処理を行う。
@@ -95,6 +102,17 @@ class WebGLApp {
       stride: [2, 2, 1],
       uniform: ["mvpMatrix", "ratio"],
       type: ["uniformMatrix4fv", "uniform1f"],
+    });
+
+    const nameVS = await WebGLUtility.loadFile("./shaders/name.vert");
+    const nameFS = await WebGLUtility.loadFile("./shaders/name.frag");
+    this.nameShaderProgram = new ShaderProgram(this.gl, {
+      vertexShaderSource: nameVS,
+      fragmentShaderSource: nameFS,
+      attribute: ["nPosition", "texCoord"],
+      stride: [2, 2],
+      uniform: ["mvpMatrix", "ratio", "textureUnit0", "textureUnit1"],
+      type: ["uniformMatrix4fv", "uniform1f", "uniform1i", "uniform1i"],
     });
 
     this.allPositions = [];
@@ -114,6 +132,15 @@ class WebGLApp {
       );
       this.allPositions.push(normalizedPositions);
     }
+
+    this.textures = [];
+    // loop through image paths and create textures
+    for (let path of this.imageNames) {
+      const texture = await WebGLUtility.createTextureFromFile(this.gl, path);
+      this.textures.push(texture);
+    }
+    this.texture0 = this.textures[0];
+    this.texture1 = this.textures[1];
   }
 
   async loadData(path) {
@@ -123,6 +150,8 @@ class WebGLApp {
     const height = Math.round(width * (image.height / image.width));
     tempCanvas.width = width;
     tempCanvas.height = height;
+
+    /**Copyright 2018–2020 Mike Bostock */
     const context = tempCanvas.getContext("2d");
     context.drawImage(
       image,
@@ -170,6 +199,15 @@ class WebGLApp {
       WebGLUtility.createVbo(this.gl, this.offsets),
     ];
 
+    // 頂点座標
+    this.namePosition = [-0.75, -1.0, 0.75, -1.0, -0.75, -1.5, 0.75, -1.5];
+    // テクスチャ座標
+    this.texCoord = [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+    this.nameVbo = [
+      WebGLUtility.createVbo(this.gl, this.namePosition),
+      WebGLUtility.createVbo(this.gl, this.texCoord),
+    ];
+
     this.resize();
     this.running = true;
     this.previousTime = Date.now();
@@ -177,11 +215,18 @@ class WebGLApp {
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.clearDepth(1.0);
     gl.enable(gl.DEPTH_TEST);
+
+    // Set up texture
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.texture0);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.texture1);
   }
 
   /**
    * ジオメトリ（頂点情報）を構築するセットアップを行う。
    */
+  /**Copyright 2018–2020 Mike Bostock */
   generateVoronoiStippling(data, width, height, n) {
     const positions = new Float64Array(n * 2);
     const c = new Float64Array(n * 2);
@@ -232,6 +277,7 @@ class WebGLApp {
     return positions;
   }
 
+  /** Normalize voronoi position */
   normalizePositions(positions, width, height) {
     // Aspect ratios
     const imageAspectRatio = width / height;
@@ -272,10 +318,15 @@ class WebGLApp {
       repeatDelay: 1.0,
       repeat: -1,
       onRepeat: async () => {
+        // Stop animation and update image index
         this.running = false;
         this.imageIndex = (this.imageIndex + 1) % this.imagePaths.length;
         const nextIndex = (this.imageIndex + 1) % this.imagePaths.length;
 
+        // Update source
+        this.source.innerHTML = this.sources[this.imageIndex];
+
+        // Update offsets
         this.offsets = [];
         for (let i = 0; i < this.allPositions[0].length / 2; i++) {
           this.offsets.push(Math.random());
@@ -285,14 +336,18 @@ class WebGLApp {
         this.position1 = this.allPositions[this.imageIndex];
         this.position2 = this.allPositions[nextIndex];
 
+        // Update textures
+        this.texture0 = this.textures[this.imageIndex];
+        this.texture1 = this.textures[nextIndex];
+
         // Update VBOs accordingly
         this.updateVBOs();
 
         this.running = true;
-        // await this.updateData();
       },
     });
   }
+
   /**
    * WebGL を利用して描画を行う。
    */
@@ -306,12 +361,6 @@ class WebGLApp {
     if (this.running === true) {
       requestAnimationFrame(this.render);
     }
-
-    // 直前のフレームからの経過時間を取得
-    const now = Date.now();
-    const time = (now - this.previousTime) / 1000;
-    this.uTime += time * this.timeScale;
-    this.previousTime = now;
 
     // ビューポートの設定と背景色・深度値のクリア
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
@@ -343,7 +392,18 @@ class WebGLApp {
 
     // 設定済みの情報を使って、頂点を画面にレンダリングする
     gl.drawArrays(gl.POINTS, 0, this.allPositions[0].length / 2);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.texture0);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.texture1);
+
+    this.nameShaderProgram.use();
+    this.nameShaderProgram.setAttribute(this.nameVbo);
+    this.nameShaderProgram.setUniform([mvp, this.timeObject.value, 0, 1]);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.namePosition.length / 2);
   }
+
   /**
    * リサイズ処理を行う。
    */
