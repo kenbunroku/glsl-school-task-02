@@ -15,6 +15,10 @@ void main() {
     float o = (offset + unsignedPosition) * 0.5;
     float merged = o + ratio * 2.0 - 1.0;
 
+    float maxOffsetX = 0.5;
+    float maxOffsetY = 2.0;
+    float maxOffsetZ = 5.5;
+
     vec3 pos1 = vec3(position1, 0.0);
     vec3 pos2 = vec3(position2, 0.0);
 
@@ -44,6 +48,18 @@ void main() {
         vAlpha = (r - 0.8) / 0.2; // Increase from 0.0 to 1.0 as r goes from 0.8 to 1.0
     }
 
+     // Adjust Y position based on r
+    if(r < 0.5) {
+        pos.x += 2.0 * r * maxOffsetX;
+        pos.y += 2.0 * r * maxOffsetY;
+        pos.z += 2.0 * r * maxOffsetZ;
+    } else {
+        // When r is 0.5 to 1.0, move back to original position
+        pos.x += 2.0 * (1.0 - r) * maxOffsetX;
+        pos.y += 2.0 * (1.0 - r) * maxOffsetY;
+        pos.z += 2.0 * (1.0 - r) * maxOffsetZ;
+    }
+
+    gl_PointSize = 2.0 + 1.5 * pos.z;
     gl_Position = mvpMatrix * vec4(pos, 1.0);
-    gl_PointSize = 2.0;
 }

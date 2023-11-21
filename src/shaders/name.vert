@@ -66,5 +66,5 @@ void main() {
     }
 
     gl_Position = mvpMatrix * vec4(pos, 1.0);
-    gl_PointSize = 5.0;
+    gl_PointSize = 3.0;
 }
