@@ -6,6 +6,7 @@ uniform mat4 mvpMatrix;
 uniform float ratio;
 
 varying float vAlpha;
+varying float vRatio;
 
 const float HALF_PI = 1.570796327;
 
@@ -22,7 +23,7 @@ void main() {
     vec3 pos1 = vec3(position1, 0.0);
     vec3 pos2 = vec3(position2, 0.0);
 
-    float r = clamp(merged, 0.0, 1.0);
+    float r = vRatio = clamp(merged, 0.0, 1.0);
 
     vec3 pos = mix(pos1, pos2, r);
 
@@ -39,16 +40,7 @@ void main() {
     // Apply rotation
     pos = rotationMatrix * pos;
 
-     // Calculate vAlpha
-    if(r < 0.2) {
-        vAlpha = 1.0 - r / 0.2; // Decrease from 1.0 to 0.0 as r goes from 0.0 to 0.2
-    } else if(r < 0.8) {
-        vAlpha = 0.0; // Keep at 0.0 from r = 0.2 to r = 0.8
-    } else {
-        vAlpha = (r - 0.8) / 0.2; // Increase from 0.0 to 1.0 as r goes from 0.8 to 1.0
-    }
-
-     // Adjust Y position based on r
+     // Adjust position based on r
     if(r < 0.5) {
         pos.x += 2.0 * r * maxOffsetX;
         pos.y += 2.0 * r * maxOffsetY;
@@ -60,6 +52,8 @@ void main() {
         pos.z += 2.0 * (1.0 - r) * maxOffsetZ;
     }
 
-    gl_PointSize = 2.0 + 1.5 * pos.z;
+     // Calculate vAlpha
+    vAlpha = mix(1.0, 0.1, pos.z / 3.5);
+    gl_PointSize = 2.0 + 4.5 * pos.z;
     gl_Position = mvpMatrix * vec4(pos, 1.0);
 }
